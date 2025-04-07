@@ -1,0 +1,6 @@
+services:
+  nginx:
+    image: marak89/myapp:latest
+    ports:
+      - "80:80"
+

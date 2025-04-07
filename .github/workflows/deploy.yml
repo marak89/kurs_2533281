@@ -1,0 +1,39 @@
+name: Deploy via SSH
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    - name: Install SSH Client
+      run: sudo apt-get install -y openssh-client rsync
+
+    - name: Add SSH key
+      run: |
+        mkdir -p ~/.shh
+        echo '${{ secrets.SSH_KEY }}' >> ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+    - name: Sync project to server via rsync
+      run: |
+        rsync -az --delete \
+          -e 'ssh -i ~/.ssh/id_rsa' \
+          ./ ${{ secrets.SSH_USER  }}@${{ secrets.SSH_HOST }}:${{  secrets.DEPLOY_PATH }}
+
+    - name: Run docker-compose on server
+      run: |
+        ssh -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}  '
+          cd ${{ secrets.DEPLOY_PATH }} && \
+          docker-compose pull && \
+          docker-compose pull && \
+          docker-compose up -d --remove-orphans
+          '
